@@ -6,7 +6,10 @@
 - Login form
     - Sign in
     - Sign up
-    
+- routing
+- form validation
+- useRef hook
+
 # Features
 - Signup/Signin
     - redirect to browse page
