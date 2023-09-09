@@ -1,3 +1,12 @@
+# Netflix GPT
+
+- Create react app
+- Configure tailwind
+- Header
+- Login form
+    - Sign in
+    - Sign up
+    
 # Features
 - Signup/Signin
     - redirect to browse page
