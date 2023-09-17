@@ -1,32 +1,81 @@
 import React, { useRef, useState } from "react";
 import Header from "./Header";
 import { checkValiData, checkValiDataWithName } from "../util/validate";
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile } from "firebase/auth";
+import { auth } from "../util/firebase";
+import {useNavigate} from "react-router-dom";      
+import {useDispatch} from "react-redux";
+import { addUser } from "../util/userSlice";
 
 const Login = () => {
-  const [isSignIn, setIsSignIn]=useState(true);
-  const [inError,setInError]=useState(null);
-  const [upError, setUpError]=useState(null);
+  const dispatch=useDispatch();
+  const navigate=useNavigate();
+  const [isSignIn, setIsSignIn] = useState(true);
+  const [inError, setInError] = useState(null);
+  const [upError, setUpError] = useState(null);
 
-  const inEmail=useRef();
-  const inPassword=useRef();
-  
-  const upName=useRef();
-  const upEmail=useRef();
-  const upPassword=useRef();
+  const inEmail = useRef();
+  const inPassword = useRef();
 
-  const handleSignOrSignup=()=> {
+  const upName = useRef();
+  const upEmail = useRef();
+  const upPassword = useRef();
+
+  const handleSignOrSignup = () => {
     setIsSignIn(!isSignIn);
-  }
+  };
   //sign in submit
-  const handleSignInSubmit=()=>{
-    const err=checkValiData(inEmail.current.value,inPassword.current.value)
+  const handleSignInSubmit = () => {
+    const err = checkValiData(inEmail.current.value, inPassword.current.value);
     setInError(err);
-  }
+    signInWithEmailAndPassword(auth, inEmail.current.value, inPassword.current.value)
+      .then((userCredential) => {
+        // Signed in
+        const user = userCredential.user;
+        navigate('/browse');
+      })
+      .catch((error) => {
+        const errorCode = error.code;
+        const errorMessage = error.message;
+        setInError(errorCode+":"+errorMessage)
+      });
+  };
   //sign up submit
-  const handleSignUpSubmit=()=>{
-    const err=checkValiDataWithName(upName.current.value,upEmail.current.value,upPassword.current.value)
+  const handleSignUpSubmit = () => {
+    const err = checkValiDataWithName(
+      upName.current.value,
+      upEmail.current.value,
+      upPassword.current.value
+    );
     setUpError(err);
-  }
+
+    if (!err) {
+      createUserWithEmailAndPassword(
+        auth,
+        upEmail.current.value,
+        upPassword.current.value
+      )
+        .then((userCredential) => {
+          const user = userCredential.user;
+          updateProfile(user, {
+            displayName: upName.current.value, photoURL: "https://avatars.githubusercontent.com/u/68752255?v=4"
+          }).then(() => {
+            // Profile updated!
+            const {uid,email,displayName,photoURL}=auth.currentUser
+            dispatch(addUser({uid,email,displayName,photoURL}))
+            navigate('/browse')
+          }).catch((error) => {
+            // An error occurred
+            // ...
+          });
+        })
+        .catch((error) => {
+          const errorCode = error.code;
+          const errorMessage = error.message;
+          setUpError(errorCode + ":" + errorMessage);
+        });
+    }
+  };
 
   return (
     <div className="">
@@ -39,80 +88,106 @@ const Login = () => {
         />
       </div>
       {/* ---------------------------------- form ---------------------------------- */}
-        {/* ------------------------------ sign in form ------------------------------ */}
-        <form className={`${isSignIn ? 'bg-black px-14 py-8 max-w-md mx-auto absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-10 text-white bg-opacity-90':'hidden'}`} onSubmit={e=>e.preventDefault()}>
-          <div className="">
-            <h2 className="text-2xl font-bold capitalize mb-10">Sign in</h2>
-            <input
-              type="text"
-              name=""
-              ref={inEmail}
-              id=""
-              className="bg-stone-700 text-white p-2 w-full mb-6 text-sm focus:outline-none"
-              placeholder="Email or Phone number"
-            />
-            <input
-              type="password"
-              name=""
-              ref={inPassword}
-              id=""
-              className="bg-stone-700 text-white p-2 w-full mb-6 text-sm focus:outline-none"
-              placeholder="Password"
-            />
-            { inError &&
-              <p className="mb-4 text-red-500 font-bold">{inError}</p>
-            }
-            <button
-              type="submit"
-              className="w-full bg-red-600 py-3 font-bold capitalize"
-              onClick={handleSignInSubmit}
+      {/* ------------------------------ sign in form ------------------------------ */}
+      <form
+        className={`${
+          isSignIn
+            ? "bg-black px-14 py-8 max-w-md mx-auto absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-10 text-white bg-opacity-90"
+            : "hidden"
+        }`}
+        onSubmit={(e) => e.preventDefault()}
+      >
+        <div className="">
+          <h2 className="text-2xl font-bold capitalize mb-10">Sign in</h2>
+          <input
+            type="text"
+            name=""
+            ref={inEmail}
+            id=""
+            className="bg-stone-700 text-white p-2 w-full mb-6 text-sm focus:outline-none"
+            placeholder="Email or Phone number"
+          />
+          <input
+            type="password"
+            name=""
+            ref={inPassword}
+            id=""
+            className="bg-stone-700 text-white p-2 w-full mb-6 text-sm focus:outline-none"
+            placeholder="Password"
+          />
+          {inError && <p className="mb-4 text-red-500 font-bold">{inError}</p>}
+          <button
+            type="submit"
+            className="w-full bg-red-600 py-3 font-bold capitalize"
+            onClick={handleSignInSubmit}
+          >
+            Sign in
+          </button>
+          <p className="mt-10">
+            New to Netflix?{" "}
+            <span
+              className="cursor-pointer font-bold"
+              onClick={handleSignOrSignup}
             >
-              Sign in
-            </button>
-            <p className="mt-10">
-              New to Netflix? <span className="cursor-pointer font-bold" onClick={handleSignOrSignup}>Sign up now.</span>
-            </p>
-          </div>
-        </form>
-        {/* ------------------------------ sign up form ------------------------------ */}
-        <form className={`${!isSignIn ? 'bg-black px-14 py-8 max-w-md mx-auto absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-10 text-white bg-opacity-90':'hidden'}`} onSubmit={e=>e.preventDefault()}>
-          <div className="">
-            <h2 className="text-2xl font-bold capitalize mb-10">Sign Up</h2>
-            <input type="text" name="" id="" ref={upName}
-              className="bg-stone-700 text-white p-2 w-full mb-6 text-sm focus:outline-none"
-              placeholder="Email Full Name"
-            />
-            <input
-              type="text"
-              name=""
-              ref={upEmail}
-              id=""
-              className="bg-stone-700 text-white p-2 w-full mb-6 text-sm focus:outline-none"
-              placeholder="Email or Phone number"
-            />
-            <input
-              type="password"
-              name=""
-              ref={upPassword}
-              id=""
-              className="bg-stone-700 text-white p-2 w-full mb-6 text-sm focus:outline-none"
-              placeholder="Password"
-            />
-             { upError &&
-              <p className="mb-4 text-red-500 font-bold">{upError}</p>
-            }
-            <button
-              type="submit"
-              className="w-full bg-red-600 py-3 font-bold capitalize"
-              onClick={handleSignUpSubmit}
+              Sign up now.
+            </span>
+          </p>
+        </div>
+      </form>
+      {/* ------------------------------ sign up form ------------------------------ */}
+      <form
+        className={`${
+          !isSignIn
+            ? "bg-black px-14 py-8 max-w-md mx-auto absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-10 text-white bg-opacity-90"
+            : "hidden"
+        }`}
+        onSubmit={(e) => e.preventDefault()}
+      >
+        <div className="">
+          <h2 className="text-2xl font-bold capitalize mb-10">Sign Up</h2>
+          <input
+            type="text"
+            name=""
+            id=""
+            ref={upName}
+            className="bg-stone-700 text-white p-2 w-full mb-6 text-sm focus:outline-none"
+            placeholder="Email Full Name"
+          />
+          <input
+            type="text"
+            name=""
+            ref={upEmail}
+            id=""
+            className="bg-stone-700 text-white p-2 w-full mb-6 text-sm focus:outline-none"
+            placeholder="Email or Phone number"
+          />
+          <input
+            type="password"
+            name=""
+            ref={upPassword}
+            id=""
+            className="bg-stone-700 text-white p-2 w-full mb-6 text-sm focus:outline-none"
+            placeholder="Password"
+          />
+          {upError && <p className="mb-4 text-red-500 font-bold">{upError}</p>}
+          <button
+            type="submit"
+            className="w-full bg-red-600 py-3 font-bold capitalize"
+            onClick={handleSignUpSubmit}
+          >
+            Sign Up
+          </button>
+          <p className="mt-10">
+            Already have an account!{" "}
+            <span
+              className="cursor-pointer font-bold"
+              onClick={handleSignOrSignup}
             >
-              Sign Up
-            </button>
-            <p className="mt-10">
-              Already have an account! <span className="cursor-pointer font-bold" onClick={handleSignOrSignup}>Sign In now.</span>
-            </p>
-          </div>
-        </form>
+              Sign In now.
+            </span>
+          </p>
+        </div>
+      </form>
     </div>
   );
 };

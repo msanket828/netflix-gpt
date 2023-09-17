@@ -9,6 +9,12 @@
 - routing
 - form validation
 - useRef hook
+- firebase setup (npm i -g firebase-tools, firebase login, firebase deploy)
+- deploying app to production
+- create sign up user account
+- implement sign in user api
+- configured and created store with userSlice
+- 
 
 # Features
 - Signup/Signin
